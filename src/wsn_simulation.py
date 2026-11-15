@@ -62,6 +62,8 @@ class WSNSimulation:
             "trust": float(self.trust[node_id])
         }
 
+
+
     def transmit(self, node_id):
         if not self.alive[node_id]:
             return False
@@ -79,8 +81,12 @@ class WSNSimulation:
             self.alive[node_id] = False
             return False
 
-        return True
+        # Simplified trust-based delivery probability
+        return bool(
+            self.rng.random() < self.trust[node_id]
+        )
 
+   
     def step(self, selected_nodes=None):
         if selected_nodes is None:
             selected_nodes = np.where(self.alive)[0]

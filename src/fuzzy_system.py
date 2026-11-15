@@ -142,16 +142,8 @@ def evaluate_fuzzy_rules(inputs, rules):
     return results
 
 
-def karnik_mendel(rules, tolerance=1e-8, max_iterations=100):
-    """
-    Interval Type-2 fuzzy type-reduction using
-    the Karnik-Mendel iterative algorithm.
 
-    Each rule contains:
-    - lower_strength
-    - upper_strength
-    - output (crisp consequent)
-    """
+def karnik_mendel(rules, tolerance=1e-8, max_iterations=100):
     import numpy as np
 
     active = [
@@ -189,6 +181,7 @@ def karnik_mendel(rules, tolerance=1e-8, max_iterations=100):
 
         for _ in range(max_iterations):
             denominator = np.sum(weights)
+
             if denominator <= 0:
                 raise ValueError("Zero total firing strength")
 
@@ -203,8 +196,18 @@ def karnik_mendel(rules, tolerance=1e-8, max_iterations=100):
                     outputs <= y, lower, upper
                 )
 
-            if np.array_equal(weights, new_weights):
-                return float(y)
+            new_denominator = np.sum(new_weights)
+
+            if new_denominator <= 0:
+                raise ValueError("Zero total firing strength")
+
+            new_y = (
+                np.sum(outputs * new_weights)
+                / new_denominator
+            )
+
+            if abs(new_y - y) < tolerance:
+                return float(new_y)
 
             weights = new_weights
 
@@ -216,6 +219,7 @@ def karnik_mendel(rules, tolerance=1e-8, max_iterations=100):
     y_right = endpoint(left=False)
 
     return y_left, y_right
+
 
 
 def defuzzify_interval_type2(rules):

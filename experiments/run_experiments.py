@@ -10,14 +10,14 @@ import numpy as np
 from src.wsn_simulation import WSNSimulation
 from src.routing import select_best_node
 
-
-RESULTS_DIR = "results"
+FAST_MODE = True
+RESULTS_DIR = "results/fast" if FAST_MODE else "results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 METHODS = ["random", "type1", "type2"]
-NODE_COUNTS = [100, 200, 300, 400]
+NODE_COUNTS = [30]
 SEEDS = [42, 43, 44]
-ROUNDS = 3000
+ROUNDS = 100
 
 
 def run_simulation(method, num_nodes, seed):
@@ -34,6 +34,10 @@ def run_simulation(method, num_nodes, seed):
     successful = 0
     attempted = 0
 
+    fnd = None
+    hnd = None
+    lnd = None
+
     for round_number in range(1, ROUNDS + 1):
         alive = np.where(wsn.alive)[0]
 
@@ -49,6 +53,17 @@ def run_simulation(method, num_nodes, seed):
             break
 
         result = wsn.step([selected])
+
+        alive_count = result["alive_nodes"]
+
+        if fnd is None and alive_count < num_nodes:
+            fnd = round_number
+
+        if hnd is None and alive_count <= num_nodes / 2:
+            hnd = round_number
+
+        if lnd is None and alive_count == 0:
+            lnd = round_number
 
         attempted += 1
         successful += result["successful_transmissions"]
@@ -95,6 +110,23 @@ def main():
                     "alive_nodes": final["alive_nodes"],
                     "total_energy": final["total_energy"],
                     "pdr": final["pdr"],
+
+"fnd": next(
+    (h["round"] for h in history
+     if h["alive_nodes"] < num_nodes),
+    None
+),
+"hnd": next(
+    (h["round"] for h in history
+     if h["alive_nodes"] <= num_nodes / 2),
+    None
+),
+"lnd": next(
+    (h["round"] for h in history
+     if h["alive_nodes"] == 0),
+    None
+),
+
                 })
 
     csv_path = os.path.join(
@@ -106,7 +138,7 @@ def main():
             f, fieldnames=[
                 "method", "nodes", "seed",
                 "rounds", "alive_nodes",
-                "total_energy", "pdr",
+                "total_energy", "pdr", "fnd", "hnd", "lnd",
             ]
         )
         writer.writeheader()
